@@ -490,6 +490,9 @@ const AI_TOOLS=[
   {name:'set_view',description:'يغيّر زاوية الكاميرا: top منظر علوي، 3d منظر ثلاثي الأبعاد',inputSchema:{type:'object',properties:{view:{type:'string',enum:['top','3d']}},required:['view']},execute(a){setTop(a.view==='top');return{view:a.view};}},
   {name:'update_item',description:'يعدّل قطعة موجودة (موقع، دوران، عرض، ألوان، نص)',inputSchema:{type:'object',properties:{id:{type:'number'},...itemProps},required:['id']},
     execute(a){const it=getIt(+a.id);if(!it)throw new Error('ما فيه قطعة بهذا الرقم');applyFields(it,a);buildItem(it);return one(it);}},
+  {name:'update_items',description:'يعدّل مجموعة قطع مرة وحدة بنفس الحقول: كل القطع من نوع معين (type) أو قائمة أرقام (ids). مثال: كل الرفوف خشب داكن = type shelf مع wood #5a3420. استخدمه بدل update_item إذا الطلب على أكثر من قطعة، وما تحتاج تمرر x أو z.',inputSchema:{type:'object',properties:{type:{type:'string',enum:Object.keys(DEFS)},ids:{type:'array',items:{type:'number'}},...itemProps}},
+    execute(a){const ids=Array.isArray(a.ids)?a.ids.map(Number):null;const list=state.items.filter(it=>ids?ids.includes(it.id):a.type?it.type===a.type:false);
+      if(!list.length)throw new Error('ما لقيت قطع مطابقة');const f={...a};delete f.type;delete f.ids;list.forEach(it=>{applyFields(it,f);buildItem(it);});return{updated:list.map(i=>i.id)};}},
   {name:'delete_item',description:'يحذف قطعة',inputSchema:{type:'object',properties:{id:{type:'number'}},required:['id']},
     execute(a){const id=+a.id,o=objs.get(id);if(!o)throw new Error('ما فيه قطعة بهذا الرقم');itemsG.remove(o);disposeTree(o);objs.delete(id);state.items=state.items.filter(i=>i.id!==id);if(selId===id)selId=null;return{deleted:id};}},
   {name:'set_room',description:'يغيّر مقاسات الغرفة أو لون الجدار أو الأرضية',inputSchema:{type:'object',properties:{W:{type:'number'},D:{type:'number'},H:{type:'number'},wall:{type:'string'},floor:{type:'string',enum:Object.keys(FLOORS)}}},
@@ -504,6 +507,7 @@ rot_deg: صفر يعني وجه القطعة يطالع الواجهة الزج�
 إذا تبي شي مو موجود في الأنواع الجاهزة، ابنه من قطع custom: صندوق أو أسطوانة أو كرة بأي مقاس (w العرض، d العمق، h الارتفاع، y الارتفاع عن الأرض) وأي لون hex وخامة (matte, wood, glass, metal, glow). تقدر تركّب أكثر من قطعة custom فوق بعض أو جنب بعض عشان تسوي أي شكل.
 الأنواع المتاحة: ${Object.entries(DEFS).map(([k,d])=>`${k} = ${d.name} (عمق ${d.dep}م${d.w?`، عرض افتراضي ${d.w}م من ${d.minW} إلى ${d.maxW}`:''}${d.wall?'، جدارية':''})`).join('؛ ')}.
 ألوان الخشب: ${WOODS.map(w=>w[1]+' '+w[0]).join('، ')}. اللون الثاني: ${ACCENTS.map(w=>w[1]+' '+w[0]).join('، ')}. ألوان الجدار: ${WALLS.map(w=>w[1]+' '+w[0]).join('، ')}. الأرضيات: ${Object.entries(FLOORS).map(([k,f])=>k+' = '+f.name).join('، ')}.
+لا تحرّك ولا تحذف ولا تضيف أي قطعة إلا إذا الطلب يقول ذلك صراحة. إذا الطلب تغيير لون أو خامة أو مقاس، عدّل هذا الحقل بس وخلّ المواقع والاتجاهات كما هي (لا تمرر x أو z أو rot_deg). للتعديل على كل القطع من نوع واحد استخدم update_items مرة وحدة. خشب داكن = #5a3420.
 لا تخلي القطع تتداخل، واترك ممرات ٩٠ سم على الأقل. إذا الطلب غامض، اختار أنسب تفسير ونفّذه.
 بعد ما تخلص، رد بجملة أو جملتين بلهجة سعودية واضحة تقول وش سويت. إذا الطلب سؤال بس، جاوب بدون ما تعدّل.`;}
 const chat=[];let aiOpen=false,aiBusy=false,gem=[];
