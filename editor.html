@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>محرر محل بدر أبا الخيل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600&family=Reem+Kufi:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: أداة عملية هادئة، زي محررات التصميم الداخلي
+   IDEA: مجسم المحل نفسه هو لوحة العمل، تحرّك القطع بإصبعك
+   PICTURE: المشهد ثلاثي الأبعاد يعبّي الشاشة كلها
+   COLOUR and TYPE: أخضر الهوية ‎#12372A وأبيض؛ IBM Plex Sans Arabic، وخط Reem Kufi للشعار
+   LAYOUT: شريط أدوات فوق، ولوحة القطعة المحددة تحت */
+:root{--g:#12372A;--g2:#1c4a39}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;height:100%;overflow:hidden;background:#d9cdb9;font:15px/1.5 "IBM Plex Sans Arabic",system-ui,sans-serif;color:#fff}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.bar{position:fixed;top:10px;right:10px;left:10px;display:flex;gap:8px;align-items:center;background:rgba(18,55,42,.92);backdrop-filter:blur(6px);border-radius:14px;padding:6px;overflow-x:auto;scrollbar-width:none}
+.brand{flex:none;font:700 16px "Reem Kufi",sans-serif;padding:0 8px;white-space:nowrap}
+button{font:600 14px "IBM Plex Sans Arabic",sans-serif;color:#fff;background:rgba(255,255,255,.1);border:0;border-radius:10px;min-height:44px;padding:0 12px;cursor:pointer;white-space:nowrap;flex:none}
+button:hover{background:rgba(255,255,255,.18)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #fff;outline-offset:2px}
+button.on{background:#fff;color:var(--g)}
+button.danger{background:#7a2020}
+button:disabled{opacity:.4;cursor:default}
+.panel{position:fixed;bottom:10px;right:10px;left:10px;max-width:760px;margin-inline:auto;background:rgba(18,55,42,.95);backdrop-filter:blur(6px);border-radius:16px;padding:12px;display:grid;gap:10px;max-height:46vh;overflow:auto}
+.panel[hidden],.sheet[hidden]{display:none}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.row b{font-size:15px;margin-inline-end:auto}
+.lbl{font-size:13px;opacity:.85;min-width:70px}
+input[type=range]{flex:1;min-width:140px;accent-color:#fff;height:44px}
+input[type=text],textarea{font:16px "IBM Plex Sans Arabic",sans-serif;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.2);color:#fff;padding:8px 10px;flex:1}
+textarea{width:100%;min-height:120px;direction:ltr;font-size:13px}
+.val{font-size:13px;min-width:52px;text-align:left;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sw{width:36px;height:36px;min-height:36px;padding:0;border-radius:50%;border:2px solid rgba(255,255,255,.35)}
+.sw.on{border-color:#fff;box-shadow:0 0 0 2px var(--g),0 0 0 4px #fff}
+.sheet{position:fixed;inset:auto 10px 10px 10px;max-width:760px;margin-inline:auto;background:rgba(18,55,42,.97);border-radius:16px;padding:14px;display:grid;gap:12px;max-height:72vh;overflow:auto}
+.sheet h2{margin:0;font-size:17px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.grid button{min-height:64px;white-space:normal;line-height:1.3}
+.note{font-size:12px;opacity:.75;margin:0}
+#toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);padding:6px 14px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none}
+#toast.show{opacity:1}
+#hint{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.5);padding:5px 14px;border-radius:999px;font-size:13px;white-space:nowrap;pointer-events:none}
+#load{position:fixed;inset:0;display:grid;place-items:center;background:var(--g);font:600 18px "IBM Plex Sans Arabic",sans-serif;transition:opacity .5s;z-index:5}
+#load.off{opacity:0;pointer-events:none}
+.sync{flex:none;font-size:12px;opacity:.85;padding:0 8px;white-space:nowrap}
+#aiBtn{background:#fff;color:var(--g)}
+.chat{display:grid;gap:8px;max-height:38vh;overflow:auto;padding:2px}
+.msg{padding:8px 12px;border-radius:12px;max-width:88%;white-space:pre-wrap;font-size:15px}
+.msg.user{background:#fff;color:var(--g);justify-self:start}
+.msg.assistant{background:rgba(255,255,255,.12);justify-self:end}
+.chips button{min-height:36px;font-size:13px;font-weight:400}
+@media(max-width:600px){.brand{display:none}#hint{font-size:12px}}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="محرر ثلاثي الأبعاد لمحل بدر أبا الخيل"></canvas>
+<header class="bar">
+  <span class="brand">محرر محل بدر أبا الخيل</span>
+  <button id="aiBtn" type="button" hidden>✨ مساعد AI</button>
+  <button id="undo" type="button" disabled>↶ تراجع</button>
+  <button id="addBtn" type="button">+ إضافة قطعة</button>
+  <button id="roomBtn" type="button">الغرفة</button>
+  <button id="viewBtn" type="button">منظر علوي</button>
+  <button id="snapBtn" type="button" class="on">مغناطيس الشبكة</button>
+  <button id="nightBtn" type="button">وضع المساء</button>
+  <button id="moreBtn" type="button">حفظ وتصدير</button>
+  <span id="sync" class="sync" hidden></span>
+</header>
+<section id="sel" class="panel" hidden></section>
+<section id="sheet" class="sheet" hidden></section>
+<div id="hint">اضغط على أي قطعة عشان تعدّلها · اسحبها لتحريكها · اسحب الفراغ للتدوير</div>
+<div id="toast"></div>
+<div id="load">جاري تجهيز المحرر…</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+{
+const $=s=>document.querySelector(s);
+const loadEl=$('#load');
+try{
+const canvas=$('#c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();
+const DAY_BG=0xd9cdb9,NIGHT_BG=0x15181c;scene.background=new THREE.Color(DAY_BG);
+const camera=new THREE.PerspectiveCamera(55,1,.05,150);
+const maxAniso=renderer.capabilities.getMaxAnisotropy();
+const C=h=>new THREE.Color(h).convertSRGBToLinear();
+const rng=seed=>()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+const R0=rng(7),rnd=(a,b,R=R0)=>a+R()*(b-a);
+
+// ===== الخامات =====
+function canvasTex(w,h,draw,rep){
+  const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=maxAniso;
+  if(rep){t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rep[0],rep[1]);}return t;
+}
+const woodTex=canvasTex(256,512,(g,w,h)=>{g.fillStyle='#fff';g.fillRect(0,0,w,h);
+  for(let i=0;i<220;i++){const x=R0()*w;g.strokeStyle=`rgba(0,0,0,${rnd(.04,.15)})`;g.lineWidth=rnd(.5,3);g.beginPath();g.moveTo(x,0);let xx=x;for(let y=0;y<=h;y+=16){xx+=rnd(-1.2,1.2);g.lineTo(xx,y);}g.stroke();}});
+const fabricTex=canvasTex(128,128,(g,w)=>{g.fillStyle='#fff';g.fillRect(0,0,w,w);g.strokeStyle='rgba(0,0,0,.45)';g.lineWidth=3;
+  for(let i=-w;i<w*2;i+=16){g.beginPath();g.moveTo(i,0);g.lineTo(i+w,w);g.stroke();g.beginPath();g.moveTo(i,w);g.lineTo(i+w,0);g.stroke();}},[3,3]);
+const plasterTex=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#fff';g.fillRect(0,0,w,h);
+  for(let i=0;i<1800;i++){g.fillStyle=`rgba(${R0()<.5?'255,255,255':'120,100,80'},${rnd(.02,.08)})`;g.fillRect(R0()*w,R0()*h,rnd(1,5),rnd(1,5));}},[3,1.5]);
+const FLOORS={
+  herring:{name:'باركيه سنبلة',tile:1.3,tex:canvasTex(512,512,(g,w)=>{
+    const u=w/8,L=4*u,Wd=u,tones=['#c99a66','#d4a874','#bd8b58','#c7955f','#d9b07d','#b88452','#cfa16c','#c08e5b'];
+    const tH=[],tV=[];for(let i=0;i<8;i++){tH.push(tones[Math.floor(R0()*8)]);tV.push(tones[Math.floor(R0()*8)]);}
+    const pl=(x,y,pw,ph,col)=>{g.fillStyle=col;g.fillRect(x,y,pw,ph);g.strokeStyle='rgba(85,52,22,.55)';g.lineWidth=1.5;g.strokeRect(x+.75,y+.75,pw-1.5,ph-1.5);};
+    for(let k=-5;k<=5;k++)for(let i=-24;i<=24;i++){const c=(((i-4*k)%8)+8)%8,ox=k*L+i*Wd,oy=-k*L+i*Wd;pl(ox,oy,L,Wd,tH[c]);pl(ox,oy+Wd,Wd,L,tV[c]);}
+  },[1,1])},
+  marble:{name:'رخام بيج',tile:1.2,tex:canvasTex(512,512,(g,w)=>{g.fillStyle='#e8dfd0';g.fillRect(0,0,w,w);
+    for(let i=0;i<40;i++){g.strokeStyle=`rgba(150,125,95,${rnd(.08,.25)})`;g.lineWidth=rnd(.5,2.5);g.beginPath();let x=R0()*w,y=R0()*w;g.moveTo(x,y);for(let k=0;k<12;k++){x+=rnd(-40,40);y+=rnd(-40,40);g.lineTo(x,y);}g.stroke();}
+    g.strokeStyle='rgba(120,100,80,.35)';g.lineWidth=2;g.strokeRect(0,0,w,w);},[1,1])},
+  concrete:{name:'أسمنت مصقول',tile:2,tex:canvasTex(256,256,(g,w)=>{g.fillStyle='#b9b3aa';g.fillRect(0,0,w,w);
+    for(let i=0;i<3000;i++){g.fillStyle=`rgba(${R0()<.5?'255,255,255':'60,55,50'},${rnd(.02,.07)})`;g.fillRect(R0()*w,R0()*w,rnd(1,4),rnd(1,4));}},[1,1])}
+};
+const mats={};
+const keep=m=>{m.userData.keep=true;return m;};
+const woodMat=h=>mats['w'+h]||(mats['w'+h]=keep(new THREE.MeshStandardMaterial({map:woodTex,color:C(h),roughness:.55})));
+const colMat=(h,r=.6)=>mats['c'+h+r]||(mats['c'+h+r]=keep(new THREE.MeshStandardMaterial({color:C(h),roughness:r})));
+const metalMat=h=>mats['m'+h]||(mats['m'+h]=keep(new THREE.MeshStandardMaterial({color:C(h),metalness:1,roughness:.25})));
+const glowMat=h=>mats['g'+h]||(mats['g'+h]=keep(new THREE.MeshStandardMaterial({color:C(h),emissive:C(h),emissiveIntensity:1.2})));
+const fabMat=h=>mats['f'+h]||(mats['f'+h]=keep(new THREE.MeshStandardMaterial({map:fabricTex,color:C(h),roughness:.95})));
+const M={
+  glass:new THREE.MeshStandardMaterial({color:0xffffff,transparent:true,opacity:.14,roughness:.05,metalness:.3,depthWrite:false,side:THREE.DoubleSide}),
+  chips:new THREE.MeshStandardMaterial({color:C('#3b2416'),roughness:.4,flatShading:true}),
+  gold:new THREE.MeshStandardMaterial({color:C('#d4a64a'),metalness:1,roughness:.22,side:THREE.DoubleSide}),
+  white:colMat('#f4f1ea',.35),whiteD:new THREE.MeshStandardMaterial({color:C('#f4f1ea'),roughness:.35,side:THREE.DoubleSide}),
+  chrome:new THREE.MeshStandardMaterial({color:0xdddddd,metalness:1,roughness:.2}),black:new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:.3,metalness:.4}),
+  amber:new THREE.MeshStandardMaterial({color:C('#6b3a1a'),roughness:.12,transparent:true,opacity:.88}),
+  gap:colMat('#3a2010',.8),trav:colMat('#d8ccb5',.8),stick:colMat('#3a2a1c',.8),flower:colMat('#e6d5b5',.9),
+  led:new THREE.MeshStandardMaterial({color:0xffe2b0,emissive:0xffd59a,emissiveIntensity:.8}),
+  down:new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xfff3dd,emissiveIntensity:1.2}),
+  frame:new THREE.MeshStandardMaterial({color:0x2a2a28,roughness:.5,metalness:.6}),
+  ceiling:colMat('#efe6d8',1),ground:colMat('#cdbb9d',1),bldg:colMat('#e6dccb',1),
+  wall:new THREE.MeshStandardMaterial({map:plasterTex,roughness:.95}),
+  floor:new THREE.MeshStandardMaterial({roughness:.55})
+};
+for(const k in M)M[k].userData.keep=true;for(const k in mats)mats[k].userData.keep=true;
+
+// أشكال مشتركة
+const G={bottleW:new THREE.CylinderGeometry(.035,.035,.11,16),bottleD:new THREE.BoxGeometry(.06,.1,.06),cap:new THREE.CylinderGeometry(.022,.022,.04,12),
+  capG:new THREE.CylinderGeometry(.018,.018,.03,12),jar:new THREE.CylinderGeometry(.045,.05,.12,16),stick:new THREE.CylinderGeometry(.003,.003,.26,4),
+  boxW:new THREE.BoxGeometry(.16,.06,.1),chip:new THREE.IcosahedronGeometry(.028,0),flute:new THREE.CylinderGeometry(.036,.036,1,12)};
+const GM={bottleW:'white',bottleD:'amber',cap:'black',capG:'gold',jar:'white',stick:'stick',boxW:'white',chip:'chips'};
+for(const k in G)G[k].userData.keep=true;
+
+// ===== أدوات البناء =====
+function B(p,w,h,d,mat,x,y,z,cast=true){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=cast;m.receiveShadow=true;p.add(m);return m;}
+const tmp=new THREE.Object3D();
+function newColl(){const L={};for(const k in GM)L[k]=[];return L;}
+function put(L,n,x,y,z,ry=0,s=1,rx=0,rz=0){tmp.position.set(x,y,z);tmp.rotation.set(rx,ry,rz);tmp.scale.setScalar(s);tmp.updateMatrix();L[n].push(tmp.matrix.clone());}
+function flush(L,g){for(const k in L){if(!L[k].length)continue;const im=new THREE.InstancedMesh(G[k],M[GM[k]],L[k].length);
+  L[k].forEach((m,i)=>im.setMatrixAt(i,m));im.castShadow=im.receiveShadow=true;im.frustumCulled=false;g.add(im);}}
+
+// ===== أنواع القطع =====
+const WOODS=[['#9a5a30','جوز'],['#c9a06a','بلوط فاتح'],['#5a3420','خشب داكن'],['#e8e2d8','أبيض']];
+const ACCENTS=[['#1d3a2b','أخضر الهوية'],['#1f2d44','كحلي'],['#1b1b1b','أسود'],['#cdb89a','بيج'],['#5a1f24','عنابي']];
+const WALLS=[['#e9dfcf','بيج'],['#f3efe8','أبيض دافئ'],['#d6c4ad','رملي'],['#c9cfc4','رمادي مخضر'],['#3b3530','داكن']];
+
+function fillBay(L,R,xa,xb,y,z){const t=Math.floor(R()*4);
+  if(t===0){for(let i=0;i<3;i++){const x=xa+(xb-xa)*(i+.5)/3;put(L,'bottleW',x,y+.055,z);put(L,'cap',x,y+.13,z);}}
+  else if(t===1){for(let i=0;i<2;i++){const x=xa+(xb-xa)*(i+.5)/2;put(L,'jar',x,y+.06,z);for(let s=0;s<5;s++)put(L,'stick',x+rnd(-.012,.012,R),y+.2,z+rnd(-.012,.012,R),0,1,rnd(-.25,.25,R),rnd(-.25,.25,R));}}
+  else if(t===2){const x=(xa+xb)/2;for(let s=0;s<3;s++)put(L,'boxW',x,y+.03+s*.062,z,rnd(-.12,.12,R));}
+  else{for(let i=0;i<4;i++){const x=xa+(xb-xa)*(i+.5)/4;put(L,'bottleD',x,y+.05,z);put(L,'capG',x,y+.115,z);}}
+}
+const DEFS={
+  shelf:{name:'رف جداري',w:2.4,minW:.6,maxW:7,dep:.44,wall:1,acc:1,build(it,g){
+    const R=rng(it.id*977),width=it.w,dep=.42,top=Math.min(2.75,state.room.H-.2),cab=.75,z0=-.21,wood=woodMat(it.wood);
+    const bays=Math.max(1,Math.round(width/.9)),bw=width/bays,L=newColl();
+    B(g,width,top,.02,colMat(it.accent,.75),0,top/2,z0+.01,false);
+    for(let i=0;i<=bays;i++)B(g,.04,top,dep,wood,-width/2+i*bw,top/2,0);
+    B(g,width+.04,.05,dep,wood,0,top,0);B(g,width,cab,dep+.04,wood,0,cab/2,.02);
+    for(let i=0;i<bays;i++){const x=-width/2+(i+.5)*bw;B(g,bw-.05,.008,.006,M.gap,x,cab/2,z0+dep+.043,false);B(g,.008,cab-.06,.006,M.gap,x,cab/2,z0+dep+.043,false);}
+    for(let n=0;cab+n*.4<top-.15;n++){const y=cab+n*.4;
+      if(n>0){B(g,width,.03,dep,wood,0,y,0);B(g,width-.1,.012,.015,M.led,0,y-.022,z0+dep-.04,false);}
+      for(let b=0;b<bays;b++){const x0=-width/2+b*bw;fillBay(L,R,x0+.08,x0+bw-.08,y+(n>0?.015:0),0);}}
+    flush(L,g);}},
+  island:{name:'طاولة عرض بخور',w:2.4,minW:.9,maxW:4,dep:.9,build(it,g){
+    const R=rng(it.id*331),len=it.w,wid=.9,h=.9,wood=woodMat(it.wood),L=newColl();
+    B(g,len,h-.06,wid,wood,0,(h-.06)/2,0);
+    const nf=Math.floor(len/.075),fg=new THREE.BoxGeometry(.045,h-.1,.035);
+    for(let i=0;i<nf;i++)for(const s of[-1,1]){const m=new THREE.Mesh(fg,wood);m.position.set(-len/2+(i+.5)*len/nf,(h-.1)/2,s*(wid/2+.017));m.castShadow=m.receiveShadow=true;g.add(m);}
+    B(g,len+.06,.04,wid+.06,wood,0,h-.04,0);
+    const n=Math.max(1,Math.round(len/.8)),tl=len/n,mid=Math.floor(n/2),em=new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.45});
+    for(let k=0;k<n;k++){const tx=-len/2+tl*(k+.5),gh=k===mid?.36:.2;
+      for(let c=0;c<(k===mid?100:200);c++)put(L,'chip',tx+rnd(-(tl-.12)/2,(tl-.12)/2,R),h+.005+R()*.05,rnd(-(wid-.14)/2,(wid-.14)/2,R),R()*6,rnd(.7,1.5,R),R()*6,R()*6);
+      const geo=new THREE.BoxGeometry(tl-.06,gh,wid-.06),gb=new THREE.Mesh(geo,M.glass);gb.position.set(tx,h+gh/2,0);g.add(gb);
+      const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo),em);e.position.copy(gb.position);g.add(e);
+      if(k===mid){const st=new THREE.Mesh(new THREE.CylinderGeometry(.02,.05,.17,20),M.gold);st.position.set(tx,h+.085,0);g.add(st);
+        const bw=new THREE.Mesh(new THREE.SphereGeometry(.13,28,14,0,Math.PI*2,Math.PI/2,Math.PI/2),M.gold);bw.position.set(tx,h+.29,0);bw.castShadow=true;g.add(bw);
+        for(let c=0;c<35;c++){const a=R()*6.28,r=R()*.1;put(L,'chip',tx+Math.cos(a)*r,h+.21+R()*.06,Math.sin(a)*r,R()*6,1,R()*6,R()*6);}}}
+    flush(L,g);}},
+  counter:{name:'كاونتر استقبال',w:1.8,minW:.8,maxW:4,dep:.7,acc:1,build(it,g){
+    const len=it.w,dep=.6,h=1,wood=woodMat(it.wood),L=newColl();
+    B(g,len,h-.05,dep,wood,0,(h-.05)/2,0);
+    const n=Math.floor(len/.072);for(let i=0;i<n;i++){const m=new THREE.Mesh(G.flute,wood);m.scale.y=h-.08;m.position.set(-len/2+(i+.5)*len/n,(h-.08)/2,dep/2+.012);m.castShadow=m.receiveShadow=true;g.add(m);}
+    B(g,len+.08,.05,dep+.1,colMat(it.accent,.35),0,h-.025,0);
+    const v=new THREE.Mesh(new THREE.SphereGeometry(.09,20,14),M.white);v.scale.set(1,1.6,1);v.position.set(len/2-.3,h+.14,0);v.castShadow=true;g.add(v);
+    for(let s=0;s<6;s++)put(L,'stick',len/2-.3,h+.36,0,0,1.4,(s-2.5)*.1,(s%3-1)*.15);flush(L,g);}},
+  chair:{name:'كرسي',dep:.7,acc:1,build(it,g){const wood=woodMat(it.wood),f=fabMat(it.accent);
+    B(g,.74,.06,.66,wood,0,.33,0);B(g,.6,.12,.6,f,0,.42,.02);B(g,.6,.5,.12,f,0,.72,-.25);for(const s of[-1,1])B(g,.07,.66,.68,wood,s*.335,.33,0);}},
+  table:{name:'طاولة جانبية',dep:.5,build(it,g){const R=rng(it.id*53);
+    const t=new THREE.Mesh(new THREE.CylinderGeometry(.22,.24,.55,32),M.trav);t.position.y=.275;t.castShadow=t.receiveShadow=true;g.add(t);
+    const v=new THREE.Mesh(new THREE.CylinderGeometry(.05,.07,.18,20),M.white);v.position.y=.64;v.castShadow=true;g.add(v);
+    for(let i=0;i<14;i++){const f=new THREE.Mesh(new THREE.SphereGeometry(rnd(.035,.06,R),10,8),M.flower);const a=R()*6.28,r=R()*.13;f.position.set(Math.cos(a)*r,rnd(.8,.98,R),Math.sin(a)*r);f.castShadow=true;g.add(f);}}},
+  logo:{name:'لوحة الشعار',w:1.36,minW:.6,maxW:3,dep:.06,wall:1,text:1,build(it,g){
+    const w=it.w,h=w*.66,c=document.createElement('canvas');c.width=640;c.height=422;const x=c.getContext('2d');
+    x.drawImage(woodTex.image,0,0,640,422);x.globalCompositeOperation='multiply';x.fillStyle=it.wood;x.fillRect(0,0,640,422);x.globalCompositeOperation='source-over';
+    x.textAlign='center';x.textBaseline='middle';const lines=(it.text||'').split('|').slice(0,3),fs=lines.length>1?150:170;
+    x.font=`700 ${fs}px "Reem Kufi","IBM Plex Sans Arabic",sans-serif`;
+    lines.forEach((s,i)=>{const y=211+(i-(lines.length-1)/2)*168;x.fillStyle='rgba(255,228,185,.35)';x.fillText(s,323,y+3,600);x.fillStyle='#3a1c0c';x.fillText(s,320,y,600);});
+    const tex=new THREE.CanvasTexture(c);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=maxAniso;
+    B(g,w,h,.05,woodMat(it.wood),0,1.95,0);
+    const p=new THREE.Mesh(new THREE.PlaneGeometry(w-.06,h-.06),new THREE.MeshStandardMaterial({map:tex,roughness:.6}));p.position.set(0,1.95,.027);g.add(p);}},
+  pillar:{name:'عمود خشب',w:.22,minW:.1,maxW:1.2,dep:.12,wall:1,build(it,g){B(g,it.w,state.room.H,.12,woodMat(it.wood),0,state.room.H/2,0);}},
+  stool:{name:'كرسي كاشير أبيض',dep:.5,noWood:1,build(it,g){
+    const chrome=M.chrome,seat=new THREE.Mesh(new THREE.CylinderGeometry(.21,.2,.07,32),M.white);seat.position.y=.68;g.add(seat);
+    const back=new THREE.Mesh(new THREE.CylinderGeometry(.21,.21,.22,32,1,true,Math.PI*.7,Math.PI*.6),M.whiteD);back.position.y=.84;g.add(back);
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.6,16),chrome);pole.position.y=.35;g.add(pole);
+    const base=new THREE.Mesh(new THREE.CylinderGeometry(.22,.24,.03,32),chrome);base.position.y=.015;g.add(base);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(.16,.012,8,32),chrome);ring.rotation.x=Math.PI/2;ring.position.y=.3;g.add(ring);
+    g.traverse(n=>{if(n.isMesh){n.castShadow=n.receiveShadow=true;}});}},
+  doorGlass:{name:'باب زجاج',noWood:1,w:1,minW:.7,maxW:2.4,dep:.1,wall:1,build(it,g){
+    const h=2.4,w=it.w,fr=M.frame,n=w>1.3?2:1,lw=(w-.12)/n;
+    B(g,.06,h,.1,fr,-w/2+.03,h/2,0);B(g,.06,h,.1,fr,w/2-.03,h/2,0);B(g,w,.08,.1,fr,0,h-.04,0);
+    for(let i=0;i<n;i++){const cx=-w/2+.06+lw*(i+.5);
+      const gl=new THREE.Mesh(new THREE.BoxGeometry(lw-.06,h-.16,.012),M.glass);gl.position.set(cx,(h-.08)/2,0);g.add(gl);
+      B(g,lw,.05,.04,fr,cx,.025,0);B(g,lw,.04,.04,fr,cx,h-.1,0);B(g,.03,h-.12,.04,fr,cx-lw/2+.015,(h-.08)/2,0);B(g,.03,h-.12,.04,fr,cx+lw/2-.015,(h-.08)/2,0);
+      const hx=n===2?(i?cx-lw/2+.1:cx+lw/2-.1):cx+lw/2-.12;
+      for(const s of[-1,1]){const hd=new THREE.Mesh(new THREE.CylinderGeometry(.013,.013,.8,12),M.gold);hd.position.set(hx,1.1,s*.07);g.add(hd);B(g,.02,.02,.06,M.gold,hx,.75,s*.04,false);B(g,.02,.02,.06,M.gold,hx,1.45,s*.04,false);}}}},
+  doorWood:{name:'باب خشب',w:.95,minW:.7,maxW:1.8,dep:.1,wall:1,build(it,g){
+    const h=2.3,w=it.w,wood=woodMat(it.wood);
+    B(g,.07,h+.07,.1,wood,-w/2+.035,(h+.07)/2,0);B(g,.07,h+.07,.1,wood,w/2-.035,(h+.07)/2,0);B(g,w,.07,.1,wood,0,h+.035,0);
+    B(g,w-.14,h,.045,wood,0,h/2,0);
+    const nv=Math.max(4,Math.round((w-.14)/.12));for(let i=1;i<nv;i++)B(g,.006,h-.04,.05,M.gap,-(w-.14)/2+i*(w-.14)/nv,h/2,0,false);
+    for(const s of[-1,1]){B(g,.15,.022,.022,M.gold,w/2-.2,1.05,s*.045,false);B(g,.04,.08,.01,M.gold,w/2-.14,1.05,s*.028,false);}}},
+  custom:{name:'قطعة مخصصة',w:1,minW:.03,maxW:20,dep:.5,custom:1,noWood:1,build(it,g){
+    const h=it.h,w=it.w,d=it.d,mat=it.mat==='wood'?woodMat(it.color):it.mat==='glass'?M.glass:it.mat==='metal'?metalMat(it.color):it.mat==='glow'?glowMat(it.color):colMat(it.color,.6);
+    const geo=it.shape==='cylinder'?new THREE.CylinderGeometry(w/2,w/2,h,40):it.shape==='sphere'?new THREE.SphereGeometry(w/2,32,20):new THREE.BoxGeometry(w,h,d);
+    const m=new THREE.Mesh(geo,mat);m.position.y=(it.y||0)+(it.shape==='sphere'?w/2:h/2);m.castShadow=it.mat!=='glass';m.receiveShadow=true;g.add(m);}},
+  cabinet:{name:'خزانة منخفضة',w:1.2,minW:.5,maxW:4,dep:.45,wall:1,acc:1,build(it,g){const wood=woodMat(it.wood),L=newColl(),R=rng(it.id*17);
+    B(g,it.w,.8,.45,wood,0,.4,0);const n=Math.max(1,Math.round(it.w/.6));
+    for(let i=1;i<n;i++)B(g,.008,.74,.006,M.gap,-it.w/2+i*it.w/n,.4,.228,false);B(g,it.w+.04,.04,.47,colMat(it.accent,.35),0,.82,0);
+    fillBay(L,R,-it.w/2+.1,it.w/2-.1,.84,0);flush(L,g);}}
+};
+const DEFAULT_WOOD='#9a5a30',DEFAULT_ACC='#1d3a2b';
+
+// ===== الحالة الافتراضية (مستوحاة من تصميم صواري) =====
+function defaultState(){return{room:{W:8,D:6,H:3.2,wall:'#e9dfcf',floor:'herring'},nextId:17,items:[
+  {id:13,type:'stool',x:2.0,z:2.62,rot:Math.PI},{id:14,type:'stool',x:2.8,z:2.62,rot:Math.PI},
+  {id:15,type:'doorGlass',x:-2.4,z:2.95,rot:Math.PI,w:1.6},{id:16,type:'doorWood',x:3.95,z:1.6,rot:-Math.PI/2,w:.95},
+  {id:1,type:'shelf',x:-3.78,z:-.3,rot:Math.PI/2,w:5},{id:2,type:'shelf',x:3.78,z:-.9,rot:-Math.PI/2,w:3.8},
+  {id:3,type:'shelf',x:-2.75,z:-2.78,rot:0,w:1.2},{id:4,type:'shelf',x:2.75,z:-2.78,rot:0,w:1.2},
+  {id:5,type:'pillar',x:-1.95,z:-2.94,rot:0,w:.22},{id:6,type:'pillar',x:1.95,z:-2.94,rot:0,w:.22},
+  {id:7,type:'logo',x:0,z:-2.97,rot:0,w:1.36,text:'بدر|أبا الخيل'},
+  {id:8,type:'chair',x:-.85,z:-2.4,rot:.12},{id:9,type:'chair',x:.85,z:-2.4,rot:-.12},{id:10,type:'table',x:0,z:-2.5,rot:0},
+  {id:11,type:'island',x:-.3,z:.25,rot:0,w:2.4},{id:12,type:'counter',x:2.4,z:2,rot:Math.PI,w:1.8}]};}
+const KEY='bader-shop-editor-v3';
+let state;try{state=JSON.parse(localStorage.getItem(KEY));}catch(e){}
+if(!state||!state.room||!Array.isArray(state.items))state=defaultState();
+function norm(it){const d=DEFS[it.type];if(!d)return null;if(d.w&&!it.w)it.w=d.w;
+  if(d.custom){it.h=+it.h||1;it.d=+it.d||.5;it.y=+it.y||0;it.color=/^#[0-9a-fA-F]{6}$/.test(it.color||'')?it.color:'#cccccc';
+    it.shape=['box','cylinder','sphere'].includes(it.shape)?it.shape:'box';it.mat=['matte','wood','glass','metal','glow'].includes(it.mat)?it.mat:'matte';it.label=String(it.label||'قطعة مخصصة').slice(0,40);}it.wood=it.wood||DEFAULT_WOOD;it.accent=it.accent||DEFAULT_ACC;it.rot=+it.rot||0;return it;}
+state.items=state.items.map(norm).filter(Boolean);
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+function save(){saveLocal();if(typeof pushRemote==='function')pushRemote();}
+
+// ===== التراجع =====
+const hist=[];const undoBtn=$('#undo');
+function snapshot(){hist.push(JSON.stringify(state));if(hist.length>60)hist.shift();undoBtn.disabled=false;}
+undoBtn.onclick=()=>{if(!hist.length)return;state=JSON.parse(hist.pop());undoBtn.disabled=!hist.length;selId=null;rebuildAll();showSel();save();toast('تم التراجع');};
+
+// ===== الغرفة =====
+const roomG=new THREE.Group(),itemsG=new THREE.Group();scene.add(roomG,itemsG);
+function disposeTree(o){o.traverse(n=>{if(n.geometry&&!n.geometry.userData.keep)n.geometry.dispose();if(n.material&&!n.material.userData.keep&&!Array.isArray(n.material)){if(n.material.map&&n.material.map!==woodTex)n.material.map.dispose();n.material.dispose();}});}
+function clear(g){while(g.children.length){const c=g.children.pop();disposeTree(c);}}
+const points=[];let sun,hemi,spot;
+function buildRoom(){
+  clear(roomG);const{W,D,H}=state.room,hx=W/2,hz=D/2;
+  const pl=(w,h,mat,pos,rot,cast=true)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);m.position.set(...pos);m.rotation.set(...rot);m.receiveShadow=true;m.castShadow=cast;roomG.add(m);return m;};
+  const F=FLOORS[state.room.floor]||FLOORS.herring;F.tex.wrapS=F.tex.wrapT=THREE.RepeatWrapping;F.tex.repeat.set(W/F.tile,D/F.tile);F.tex.needsUpdate=true;
+  M.floor.map=F.tex;M.floor.needsUpdate=true;M.wall.color.copy(C(state.room.wall));
+  const fl=pl(W,D,M.floor,[0,0,0],[-Math.PI/2,0,0],false);fl.userData.floor=true;
+  pl(W,D,M.ceiling,[0,H,0],[Math.PI/2,0,0]);
+  pl(W,H,M.wall,[0,H/2,-hz],[0,0,0]);pl(D,H,M.wall,[-hx,H/2,0],[0,Math.PI/2,0]);pl(D,H,M.wall,[hx,H/2,0],[0,-Math.PI/2,0]);
+  const GH=Math.min(2.7,H-.3),gw=W-.8;
+  pl(W,H-GH,M.wall,[0,(H+GH)/2,hz],[0,Math.PI,0]);pl(.4,GH,M.wall,[-hx+.2,GH/2,hz],[0,Math.PI,0]);pl(.4,GH,M.wall,[hx-.2,GH/2,hz],[0,Math.PI,0]);
+  const nm=Math.max(2,Math.round(gw/1.2));for(let i=0;i<=nm;i++)B(roomG,.06,GH,.08,M.frame,-gw/2+i*gw/nm,GH/2,hz-.04);
+  B(roomG,gw,.06,.08,M.frame,0,GH,hz-.04);B(roomG,gw,.06,.08,M.frame,0,.03,hz-.04);
+  pl(gw,GH,M.glass,[0,GH/2,hz-.02],[0,0,0],false);
+  pl(90,60,M.ground,[0,-.02,hz+30.01],[-Math.PI/2,0,0],false);
+  [[-9,22,6,9],[2,26,8,12],[12,20,5,7],[-20,28,7,14]].forEach(([x,z,w,h])=>B(roomG,w,h,4,M.bldg,x,h/2,z+hz,false));
+  const dg=new THREE.CircleGeometry(.055,20);
+  for(let x=-hx+1;x<=hx-.9;x+=1.5)for(let z=-hz+.8;z<=hz-.7;z+=1.5){const m=new THREE.Mesh(dg,M.down);m.position.set(x,H-.002,z);m.rotation.x=Math.PI/2;roomG.add(m);}
+  points.forEach((p,i)=>p.position.set((i%2?1:-1)*W/4,H-.3,(i<2?1:-1)*D/4));
+  const s=Math.max(W,D)*.75+1;Object.assign(sun.shadow.camera,{left:-s,right:s,top:s,bottom:-s});sun.shadow.camera.updateProjectionMatrix();
+  sun.position.set(-3,5,hz+7);
+}
+// ===== القطع =====
+const objs=new Map();
+function buildItem(it){
+  const old=objs.get(it.id);if(old){itemsG.remove(old);disposeTree(old);}
+  const g=new THREE.Group();g.userData.id=it.id;DEFS[it.type].build(it,g);
+  g.position.set(it.x,0,it.z);g.rotation.y=it.rot;itemsG.add(g);objs.set(it.id,g);
+  if(it.id===selId)updateBox();
+}
+function rebuildAll(){objs.forEach(o=>{itemsG.remove(o);disposeTree(o);});objs.clear();buildRoom();state.items.forEach(buildItem);updateBox();}
+
+// ===== الإضاءة =====
+hemi=new THREE.HemisphereLight(0xfff4e6,0x8a6a4a,.35);scene.add(hemi);
+sun=new THREE.DirectionalLight(0xffe0b0,1.7);sun.target.position.set(0,0,0);scene.add(sun,sun.target);
+sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.near=1;sun.shadow.camera.far=35;sun.shadow.bias=-.0004;sun.shadow.normalBias=.03;
+for(let i=0;i<4;i++){const p=new THREE.PointLight(0xffd6a0,.25,8,2);scene.add(p);points.push(p);}
+{const pm=new THREE.PMREMGenerator(renderer),es=new THREE.Scene();
+  es.add(new THREE.Mesh(new THREE.BoxGeometry(10,10,10),new THREE.MeshBasicMaterial({color:0x7a5c44,side:THREE.BackSide})));
+  const lp=(x,y,z,w,h,c)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({color:c,side:THREE.DoubleSide}));m.position.set(x,y,z);m.lookAt(0,0,0);es.add(m);};
+  lp(0,4.9,0,6,6,0xfff2dc);lp(0,1,4.9,8,4,0xe8eef2);lp(-4.9,1,0,4,2,0xffd9a8);
+  scene.environment=pm.fromScene(es,.04).texture;pm.dispose();}
+
+// ===== التحديد =====
+let selId=null;const selBox=new THREE.BoxHelper(undefined,0xffffff);selBox.visible=false;scene.add(selBox);
+function updateBox(){const o=objs.get(selId);if(!o){selBox.visible=false;return;}selBox.setFromObject(o);selBox.visible=true;}
+const getIt=id=>state.items.find(i=>i.id===id);
+const selEl=$('#sel'),hintEl=$('#hint');
+const deg=r=>Math.round(((r*180/Math.PI)%360+360)%360);
+function swatches(list,cur,attr){return list.map(([h,n])=>`<button type="button" class="sw${h===cur?' on':''}" style="background:${h}" data-${attr}="${h}" aria-label="${n}" title="${n}"></button>`).join('');}
+function showSel(){
+  const it=getIt(selId);hintEl.hidden=!!it;
+  if(!it){selEl.hidden=true;updateBox();return;}
+  const d=DEFS[it.type];selEl.hidden=false;
+  selEl.innerHTML=`
+  <div class="row"><b>${d.custom?esc(it.label):d.name}</b><button type="button" data-a="desel">✕ إغلاق</button></div>
+  <div class="row"><button type="button" data-a="r-15">↺ ١٥°</button><button type="button" data-a="r15">↻ ١٥°</button><button type="button" data-a="r90">تدوير ٩٠°</button>
+  ${d.wall?'<button type="button" data-a="wall">ألصق بأقرب جدار</button>':''}<button type="button" data-a="dup">نسخ</button><button type="button" class="danger" data-a="del">حذف</button></div>
+  ${d.w?`<div class="row"><span class="lbl">العرض</span><input type="range" id="wR" min="${d.minW}" max="${d.maxW}" step="0.05" value="${it.w}"><span class="val" id="wV">${it.w.toFixed(2)} م</span></div>`:''}
+  ${d.noWood?'':`<div class="row"><span class="lbl">الخشب</span>${swatches(WOODS,it.wood,'wood')}</div>`}
+  ${d.custom?`<div class="row"><span class="lbl">اللون</span>${swatches([...WOODS,...ACCENTS,...WALLS],it.color,'col')}</div>`:''}
+  ${d.acc?`<div class="row"><span class="lbl">${it.type==='chair'?'القماش':it.type==='shelf'?'خلفية الرف':'السطح'}</span>${swatches(ACCENTS,it.accent,'acc')}</div>`:''}
+  ${d.text?`<div class="row"><span class="lbl">النص</span><input type="text" id="tI" value="${(it.text||'').replace(/"/g,'&quot;')}" maxlength="40"></div><p class="note">استخدم | عشان تنزل سطر جديد، مثل: بدر|أبا الخيل</p>`:''}
+  <p class="note">الزاوية ${deg(it.rot)}° · الموقع ${it.x.toFixed(2)} × ${it.z.toFixed(2)} م</p>`;
+  updateBox();
+}
+function change(fn,rebuild=true){const it=getIt(selId);if(!it)return;snapshot();fn(it);if(rebuild)buildItem(it);else{const o=objs.get(it.id);o.position.set(it.x,0,it.z);o.rotation.y=it.rot;updateBox();}save();showSel();}
+function wallSnap(it){const{W,D}=state.room,dp=(DEFS[it.type].custom?it.d:DEFS[it.type].dep)/2;
+  const ds=[[it.z+D/2,'b'],[D/2-it.z,'f'],[it.x+W/2,'l'],[W/2-it.x,'r']].sort((a,b)=>a[0]-b[0]);
+  const w=ds[0][1];if(w==='b'){it.rot=0;it.z=-D/2+dp;}else if(w==='f'){it.rot=Math.PI;it.z=D/2-dp;}else if(w==='l'){it.rot=Math.PI/2;it.x=-W/2+dp;}else{it.rot=-Math.PI/2;it.x=W/2-dp;}}
+let blockUntil=0;
+selEl.addEventListener('click',e=>{if(performance.now()<blockUntil)return;const b=e.target.closest('button');if(!b)return;const a=b.dataset.a;
+  if(a==='desel'){selId=null;showSel();return;}
+  if(a&&a[0]==='r'){const v=+a.slice(1);change(it=>{it.rot+=v*Math.PI/180;},false);return;}
+  if(a==='wall'){change(it=>wallSnap(it),false);toast('انلصقت بالجدار');return;}
+  if(a==='dup'){const it=getIt(selId);snapshot();const n={...it,id:state.nextId++,x:it.x+.4,z:it.z+.4};state.items.push(n);buildItem(n);selId=n.id;save();showSel();toast('تم النسخ');return;}
+  if(a==='del'){snapshot();const o=objs.get(selId);itemsG.remove(o);disposeTree(o);objs.delete(selId);state.items=state.items.filter(i=>i.id!==selId);selId=null;save();showSel();toast('تم الحذف');return;}
+  if(b.dataset.wood){change(it=>{it.wood=b.dataset.wood;});return;}
+  if(b.dataset.acc){change(it=>{it.accent=b.dataset.acc;});return;}
+  if(b.dataset.col){change(it=>{it.color=b.dataset.col;});}
+});
+let wSnap=false;
+selEl.addEventListener('input',e=>{const it=getIt(selId);if(!it)return;
+  if(e.target.id==='wR'){if(!wSnap){snapshot();wSnap=true;}it.w=+e.target.value;$('#wV').textContent=it.w.toFixed(2)+' م';buildItem(it);}
+  if(e.target.id==='tI'){if(!wSnap){snapshot();wSnap=true;}it.text=e.target.value;buildItem(it);}});
+selEl.addEventListener('change',()=>{wSnap=false;save();});
+
+// ===== الكاميرا والسحب =====
+const cur={t:new THREE.Vector3(0,.6,-.3),r:12,theta:.55,phi:.9};let goal=null,topView=false;
+function applyCam(){const s=Math.sin(cur.phi);camera.position.set(cur.t.x+cur.r*s*Math.sin(cur.theta),cur.t.y+cur.r*Math.cos(cur.phi),cur.t.z+cur.r*s*Math.cos(cur.theta));camera.lookAt(cur.t);}
+const viewBtn=$('#viewBtn');
+viewBtn.onclick=()=>{topView=!topView;viewBtn.classList.toggle('on',topView);
+  const m=Math.max(state.room.W,state.room.D);
+  goal=topView?{t:new THREE.Vector3(0,0,0),r:m*1.25+2,theta:0,phi:.02}:{t:new THREE.Vector3(0,.6,-.3),r:m*1.2+2,theta:.55,phi:.9};
+  let d=goal.theta-cur.theta;d=Math.atan2(Math.sin(d),Math.cos(d));goal.theta=cur.theta+d;};
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),floorP=new THREE.Plane(new THREE.Vector3(0,1,0),0),hitV=new THREE.Vector3();
+function setNdc(e){const r=canvas.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);}
+function pickItem(){const hs=ray.intersectObjects(itemsG.children,true);for(const h of hs){if(h.object.isLineSegments)continue;let o=h.object;while(o&&o.userData.id===undefined)o=o.parent;if(o)return o.userData.id;}return null;}
+let snap=true;const snapBtn=$('#snapBtn');snapBtn.onclick=()=>{snap=!snap;snapBtn.classList.toggle('on',snap);toast(snap?'المغناطيس شغال (كل ٥ سم)':'المغناطيس طافي');};
+const ptrs=new Map();let pinch0=0,r0=0,drag=null,downAt=null,moved=0;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+canvas.addEventListener('pointerdown',e=>{
+  canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});goal=null;
+  if(ptrs.size===2){drag=null;const[a,b]=[...ptrs.values()];pinch0=Math.hypot(a.x-b.x,a.y-b.y);r0=cur.r;return;}
+  downAt={x:e.clientX,y:e.clientY};moved=0;setNdc(e);const id=pickItem();
+  if(id!==null){blockUntil=performance.now()+600;if(selId!==id){selId=id;showSel();}
+    const it=getIt(id);if(ray.ray.intersectPlane(floorP,hitV))drag={id,ox:it.x-hitV.x,oz:it.z-hitV.z,started:false};}
+});
+canvas.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return;
+  if(e.pointerType==='mouse'&&e.buttons===0){ptrs.delete(e.pointerId);if(drag){if(drag.started){save();showSel();}drag=null;}downAt=null;return;}
+  const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;moved+=Math.abs(dx)+Math.abs(dy);
+  if(ptrs.size===2){const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch0>0)cur.r=clamp(r0*pinch0/d,1,25);return;}
+  if(drag){if(moved<4)return;setNdc(e);if(!ray.ray.intersectPlane(floorP,hitV))return;const it=getIt(drag.id);
+    if(!drag.started){snapshot();drag.started=true;}
+    let x=hitV.x+drag.ox,z=hitV.z+drag.oz;if(snap){x=Math.round(x/.05)*.05;z=Math.round(z/.05)*.05;}
+    const{W,D}=state.room;it.x=clamp(x,-W/2,W/2);it.z=clamp(z,-D/2,D/2);
+    const o=objs.get(it.id);o.position.set(it.x,0,it.z);updateBox();return;}
+  if(topView){const k=cur.r*.0016;cur.t.x-=dx*k;cur.t.z-=dy*k;}
+  else{cur.theta-=dx*.006;cur.phi=clamp(cur.phi-dy*.006,.02,1.65);}
+});
+function up(e){ptrs.delete(e.pointerId);pinch0=0;
+  if(drag){blockUntil=performance.now()+400;if(drag.started){save();showSel();}drag=null;}
+  else if(downAt&&moved<6&&ptrs.size===0){setNdc(e);if(pickItem()===null&&selId!==null){selId=null;showSel();}}
+  downAt=null;}
+canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',up);
+canvas.addEventListener('lostpointercapture',e=>{if(ptrs.has(e.pointerId))up(e);});
+canvas.addEventListener('wheel',e=>{e.preventDefault();goal=null;cur.r=clamp(cur.r*(1+e.deltaY*.001),1,25);},{passive:false});
+
+// ===== النوافذ المنبثقة =====
+const sheet=$('#sheet');
+function openSheet(html){sheet.innerHTML=html;sheet.hidden=false;selEl.hidden=true;}
+function closeSheet(){sheet.hidden=true;showSel();}
+$('#addBtn').onclick=()=>openSheet(`<div class="row"><h2>إضافة قطعة</h2><button type="button" data-a="close" style="margin-inline-start:auto">✕</button></div>
+  <div class="grid">${Object.entries(DEFS).map(([k,d])=>`<button type="button" data-add="${k}">${d.name}</button>`).join('')}</div>
+  <p class="note">القطعة تنزل في نص المحل، بعدها اسحبها لمكانها.</p>`);
+$('#roomBtn').onclick=()=>{const r=state.room;openSheet(`<div class="row"><h2>إعدادات الغرفة</h2><button type="button" data-a="close" style="margin-inline-start:auto">✕</button></div>
+  ${[['W','العرض',3,20],['D','العمق',3,16],['H','الارتفاع',2.6,5]].map(([k,n,a,b])=>`<div class="row"><span class="lbl">${n}</span><input type="range" data-room="${k}" min="${a}" max="${b}" step="0.1" value="${r[k]}"><span class="val" id="rv${k}">${r[k].toFixed(1)} م</span></div>`).join('')}
+  <div class="row"><span class="lbl">لون الجدار</span>${swatches(WALLS,r.wall,'wall')}</div>
+  <div class="row"><span class="lbl">الأرضية</span>${Object.entries(FLOORS).map(([k,f])=>`<button type="button" data-floor="${k}" class="${k===r.floor?'on':''}">${f.name}</button>`).join('')}</div>
+  <p class="note">الواجهة الزجاجية دايم في الجدار الأمامي.</p>`);};
+$('#moreBtn').onclick=()=>openSheet(`<div class="row"><h2>حفظ وتصدير</h2><button type="button" data-a="close" style="margin-inline-start:auto">✕</button></div>
+  <p class="note">التصميم ينحفظ تلقائي في هذا المتصفح بس. عشان تنقله لجهاز ثاني أو ترسله لأحد، انسخ الكود وألصقه هناك.</p>
+  <textarea id="json" spellcheck="false">${JSON.stringify(state).replace(/</g,'&lt;')}</textarea>
+  <div class="row"><button type="button" data-a="copy">نسخ الكود</button><button type="button" data-a="import">استيراد من الكود</button><button type="button" class="danger" data-a="reset">رجّع التصميم الأصلي</button></div>`);
+sheet.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const a=b.dataset.a;
+  if(a==='close'){closeSheet();return;}
+  if(b.dataset.add){snapshot();const d=DEFS[b.dataset.add];const it=norm({id:state.nextId++,type:b.dataset.add,x:0,z:0,rot:0,text:d.text?'بدر|أبا الخيل':undefined});
+    state.items.push(it);buildItem(it);selId=it.id;save();closeSheet();toast('أُضيفت: '+d.name);return;}
+  if(b.dataset.wall){snapshot();state.room.wall=b.dataset.wall;buildRoom();save();sheet.querySelectorAll('[data-wall]').forEach(s=>s.classList.toggle('on',s===b));return;}
+  if(b.dataset.floor){snapshot();state.room.floor=b.dataset.floor;buildRoom();save();sheet.querySelectorAll('[data-floor]').forEach(s=>s.classList.toggle('on',s===b));return;}
+  if(a==='copy'){const t=$('#json');t.select();(navigator.clipboard?navigator.clipboard.writeText(t.value):Promise.reject()).then(()=>toast('انسخ الكود')).catch(()=>{try{document.execCommand('copy');toast('انسخ الكود');}catch(err){toast('انسخه يدوي من المربع');}});return;}
+  if(a==='import'){try{const s=JSON.parse($('#json').value);if(!s.room||!Array.isArray(s.items))throw 0;snapshot();state=s;state.items=state.items.map(norm).filter(Boolean);
+      state.nextId=Math.max(state.nextId||0,...state.items.map(i=>i.id+1),1);selId=null;rebuildAll();save();closeSheet();toast('تم الاستيراد');}catch(err){toast('الكود غير صالح');}return;}
+  if(a==='reset'){if(b.dataset.sure){snapshot();state=defaultState();state.items.forEach(norm);selId=null;rebuildAll();save();closeSheet();toast('رجع التصميم الأصلي');}
+    else{b.dataset.sure='1';b.textContent='متأكد؟ اضغط مرة ثانية';}}
+});
+let rSnap=false;
+sheet.addEventListener('input',e=>{const k=e.target.dataset.room;if(!k)return;if(!rSnap){snapshot();rSnap=true;}
+  state.room[k]=+e.target.value;$('#rv'+k).textContent=state.room[k].toFixed(1)+' م';
+  const{W,D}=state.room;state.items.forEach(it=>{it.x=clamp(it.x,-W/2,W/2);it.z=clamp(it.z,-D/2,D/2);});
+  if(k==='H')rebuildAll();else{buildRoom();state.items.forEach(it=>objs.get(it.id).position.set(it.x,0,it.z));updateBox();}});
+sheet.addEventListener('change',()=>{rSnap=false;save();});
+
+// ===== النهار والمساء =====
+let night=false;const nightBtn=$('#nightBtn');
+nightBtn.onclick=()=>{night=!night;nightBtn.textContent=night?'وضع النهار':'وضع المساء';nightBtn.classList.toggle('on',night);
+  scene.background.set(night?NIGHT_BG:DAY_BG);sun.intensity=night?0:1.7;hemi.intensity=night?.12:.35;
+  points.forEach(p=>p.intensity=night?.9:.25);M.led.emissiveIntensity=night?2.2:.8;M.down.emissiveIntensity=night?2.5:1.2;
+  M.ground.color.copy(C(night?'#2a2a2c':'#cdbb9d'));M.bldg.color.copy(C(night?'#3a3a40':'#e6dccb'));renderer.toneMappingExposure=night?1.15:1;};
+
+let tT;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('show'),1600);}
+
+// ===== أدوات التعديل (يستخدمها مساعد الذكاء الاصطناعي) =====
+const r2d=r=>Math.round(r*180/Math.PI),d2r=d=>d*Math.PI/180;
+const isHex=h=>typeof h==='string'&&/^#[0-9a-fA-F]{6}$/.test(h);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function one(it){return{id:it.id,type:it.type,name:DEFS[it.type].name,x:+it.x.toFixed(2),z:+it.z.toFixed(2),rot_deg:r2d(it.rot),w:it.w,wood:it.wood,accent:it.accent,text:it.text};}
+function describe(){return{room:state.room,items:state.items.map(one)};}
+function applyFields(it,a){const{W,D}=state.room,d=DEFS[it.type];
+  if(a.x!=null&&isFinite(a.x))it.x=clamp(+a.x,-W/2,W/2);if(a.z!=null&&isFinite(a.z))it.z=clamp(+a.z,-D/2,D/2);
+  if(a.rot_deg!=null&&isFinite(a.rot_deg))it.rot=d2r(+a.rot_deg);
+  if(a.w!=null&&d.w&&isFinite(a.w))it.w=clamp(+a.w,d.minW,d.maxW);
+  if(isHex(a.wood))it.wood=a.wood;if(isHex(a.accent))it.accent=a.accent;
+  if(a.text!=null&&d.text)it.text=String(a.text).slice(0,40);
+  if(d.custom){if(isFinite(a.h)&&a.h!=null)it.h=clamp(+a.h,.01,state.room.H);if(isFinite(a.d)&&a.d!=null)it.d=clamp(+a.d,.01,20);
+    if(isFinite(a.y)&&a.y!=null)it.y=clamp(+a.y,0,state.room.H);if(isHex(a.color))it.color=a.color;
+    if(['box','cylinder','sphere'].includes(a.shape))it.shape=a.shape;if(['matte','wood','glass','metal','glow'].includes(a.mat))it.mat=a.mat;if(a.label)it.label=String(a.label).slice(0,40);}
+  if(a.against_wall&&(d.wall||d.custom))wallSnap(it);}
+function addOne(a){const d=DEFS[a.type];if(!d)throw new Error('نوع غير معروف: '+a.type);
+  const it=norm({id:state.nextId++,type:a.type,x:0,z:0,rot:0,text:d.text?'بدر|أبا الخيل':undefined,label:a.label});applyFields(it,a);state.items.push(it);buildItem(it);return one(it);}
+const setNight=v=>{if(night!==!!v)nightBtn.click();};
+const setTop=v=>{if(topView!==!!v)viewBtn.click();};
+const itemProps={x:{type:'number'},z:{type:'number'},rot_deg:{type:'number'},w:{type:'number',description:'العرض بالمتر للقطع اللي لها عرض'},
+  wood:{type:'string',description:'لون الخشب hex'},accent:{type:'string',description:'اللون الثاني hex (خلفية الرف، القماش، السطح)'},
+  text:{type:'string',description:'نص لوحة الشعار، | لسطر جديد'},against_wall:{type:'boolean',description:'ألصقها بأقرب جدار وعدّل اتجاهها'},
+  h:{type:'number',description:'custom فقط: الارتفاع بالمتر'},d:{type:'number',description:'custom فقط: العمق بالمتر'},y:{type:'number',description:'custom فقط: الارتفاع عن الأرض'},
+  color:{type:'string',description:'custom فقط: اللون hex'},shape:{type:'string',enum:['box','cylinder','sphere']},mat:{type:'string',enum:['matte','wood','glass','metal','glow']},
+  label:{type:'string',description:'custom فقط: اسم القطعة'}};
+const AI_TOOLS=[
+  {name:'get_design',description:'يرجع الغرفة وكل القطع الحالية بمواقعها',inputSchema:{type:'object',properties:{}},execute:()=>describe()},
+  {name:'add_item',description:'يضيف قطعة جديدة',inputSchema:{type:'object',properties:{type:{type:'string',enum:Object.keys(DEFS)},...itemProps},required:['type']},
+    execute:a=>addOne(a)},
+  {name:'add_items',description:'يضيف عدة قطع مرة وحدة (مفيد للتصميم من الصفر)',inputSchema:{type:'object',properties:{items:{type:'array',items:{type:'object',properties:{type:{type:'string',enum:Object.keys(DEFS)},...itemProps},required:['type']}}},required:['items']},
+    execute(a){return(a.items||[]).slice(0,120).map(x=>{try{return addOne(x);}catch(e){return{error:e.message};}});}},
+  {name:'clear_all',description:'يحذف كل القطع من المحل عشان تبدأ التصميم من الصفر',inputSchema:{type:'object',properties:{}},
+    execute(){objs.forEach(o=>{itemsG.remove(o);disposeTree(o);});objs.clear();state.items=[];selId=null;return{cleared:true};}},
+  {name:'set_lighting',description:'يشغّل وضع المساء أو النهار',inputSchema:{type:'object',properties:{night:{type:'boolean'}},required:['night']},execute(a){setNight(a.night);return{night:!!a.night};}},
+  {name:'set_view',description:'يغيّر زاوية الكاميرا: top منظر علوي، 3d منظر ثلاثي الأبعاد',inputSchema:{type:'object',properties:{view:{type:'string',enum:['top','3d']}},required:['view']},execute(a){setTop(a.view==='top');return{view:a.view};}},
+  {name:'update_item',description:'يعدّل قطعة موجودة (موقع، دوران، عرض، ألوان، نص)',inputSchema:{type:'object',properties:{id:{type:'number'},...itemProps},required:['id']},
+    execute(a){const it=getIt(+a.id);if(!it)throw new Error('ما فيه قطعة بهذا الرقم');applyFields(it,a);buildItem(it);return one(it);}},
+  {name:'delete_item',description:'يحذف قطعة',inputSchema:{type:'object',properties:{id:{type:'number'}},required:['id']},
+    execute(a){const id=+a.id,o=objs.get(id);if(!o)throw new Error('ما فيه قطعة بهذا الرقم');itemsG.remove(o);disposeTree(o);objs.delete(id);state.items=state.items.filter(i=>i.id!==id);if(selId===id)selId=null;return{deleted:id};}},
+  {name:'set_room',description:'يغيّر مقاسات الغرفة أو لون الجدار أو الأرضية',inputSchema:{type:'object',properties:{W:{type:'number'},D:{type:'number'},H:{type:'number'},wall:{type:'string'},floor:{type:'string',enum:Object.keys(FLOORS)}}},
+    execute(a){const r=state.room;if(isFinite(a.W))r.W=clamp(+a.W,3,20);if(isFinite(a.D))r.D=clamp(+a.D,3,16);if(isFinite(a.H))r.H=clamp(+a.H,2.6,5);
+      if(isHex(a.wall))r.wall=a.wall;if(FLOORS[a.floor])r.floor=a.floor;state.items.forEach(it=>{it.x=clamp(it.x,-r.W/2,r.W/2);it.z=clamp(it.z,-r.D/2,r.D/2);});rebuildAll();return r;}}
+];
+function aiPrompt(){return `أنت مساعد تصميم داخلي داخل محرر ثلاثي الأبعاد لمحل "بدر أبا الخيل" للبخور والعود. تعدّل التصميم بالأدوات فقط، وابدأ دايم بـ get_design.
+الإحداثيات بالمتر، ونقطة الأصل في منتصف أرضية المحل. لشخص واقف عند الواجهة الزجاجية ويطالع داخل المحل: x السالب جهة الجدار اليسار، وx الموجب جهة الجدار اليمين. z السالب جهة الجدار الخلفي (جدار الشعار)، وz الموجب جهة الواجهة الزجاجية والمدخل. حدود الغرفة ±W/2 و ±D/2.
+rot_deg: صفر يعني وجه القطعة يطالع الواجهة الزجاجية، 180 يطالع الجدار الخلفي، 90 يطالع اليمين (القطعة ملاصقة للجدار اليسار)، و-90 يطالع اليسار.
+للقطع الجدارية استخدم against_wall:true عشان تنلصق بأقرب جدار لموقعها.
+عندك صلاحية كاملة على كل شي: تضيف وتعدّل وتحذف أي قطعة، تمسح المحل كله بـ clear_all وتصممه من الصفر، تغيّر مقاسات الغرفة والجدار والأرضية والإضاءة وزاوية الكاميرا. لما تبني تصميم كامل استخدم add_items عشان تضيف كل القطع مرة وحدة.
+إذا تبي شي مو موجود في الأنواع الجاهزة، ابنه من قطع custom: صندوق أو أسطوانة أو كرة بأي مقاس (w العرض، d العمق، h الارتفاع، y الارتفاع عن الأرض) وأي لون hex وخامة (matte, wood, glass, metal, glow). تقدر تركّب أكثر من قطعة custom فوق بعض أو جنب بعض عشان تسوي أي شكل.
+الأنواع المتاحة: ${Object.entries(DEFS).map(([k,d])=>`${k} = ${d.name} (عمق ${d.dep}م${d.w?`، عرض افتراضي ${d.w}م من ${d.minW} إلى ${d.maxW}`:''}${d.wall?'، جدارية':''})`).join('؛ ')}.
+ألوان الخشب: ${WOODS.map(w=>w[1]+' '+w[0]).join('، ')}. اللون الثاني: ${ACCENTS.map(w=>w[1]+' '+w[0]).join('، ')}. ألوان الجدار: ${WALLS.map(w=>w[1]+' '+w[0]).join('، ')}. الأرضيات: ${Object.entries(FLOORS).map(([k,f])=>k+' = '+f.name).join('، ')}.
+لا تخلي القطع تتداخل، واترك ممرات ٩٠ سم على الأقل. إذا الطلب غامض، اختار أنسب تفسير ونفّذه.
+بعد ما تخلص، رد بجملة أو جملتين بلهجة سعودية واضحة تقول وش سويت. إذا الطلب سؤال بس، جاوب بدون ما تعدّل.`;}
+const chat=[];let aiOpen=false,aiBusy=false,gem=[];
+const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k)||'';localStorage.setItem(k,v);}catch(e){return '';}};
+const DEFAULT_MODEL='gemini-3.8-flash';
+const EXAMPLES=['امسح كل شي وصمم لي محل عود فخم من الصفر','حط كرسيين زيادة جنب طاولة البخور','خل الرفوف كلها خشب داكن','وش القطع اللي في المحل؟'];
+function renderChat(){if(!aiOpen)return;const el=$('#chat');if(!el)return;
+  el.innerHTML=chat.length?chat.map(m=>`<div class="msg ${m.role}">${esc(m.content)}</div>`).join(''):'<p class="note">اكتب وش تبي تغيّر في التصميم، وGemini يعدّله لك على طول.</p>';
+  el.scrollTop=el.scrollHeight;const b=$('#aiSend');if(b)b.disabled=aiBusy;}
+function openAI(){const key=LS('gemini-key'),model=LS('gemini-model')||DEFAULT_MODEL;
+  openSheet(`<div class="row"><h2>✨ مساعد Gemini</h2><button type="button" data-a="close" style="margin-inline-start:auto">✕</button></div>
+  <details ${key?'':'open'}><summary style="cursor:pointer;min-height:32px">إعدادات Gemini ${key?'· المفتاح محفوظ':'· أدخل مفتاحك'}</summary>
+    <div class="row" style="margin-top:8px"><span class="lbl">مفتاح API</span><input type="password" id="gKey" value="${esc(key)}" placeholder="AIza…" autocomplete="off" style="font:16px monospace;direction:ltr"></div>
+    <div class="row"><span class="lbl">الموديل</span><input type="text" id="gModel" value="${esc(model)}" list="gModels" style="direction:ltr"><datalist id="gModels"></datalist><button type="button" data-a="gList">جيب الموديلات</button></div>
+    <div class="row"><button type="button" data-a="gSave">حفظ</button><button type="button" data-a="gDel">احذف المفتاح</button></div>
+    <p class="note">المفتاح ينحفظ في هذا المتصفح بس، ويروح مباشرة لخوادم Google. تطلعه من aistudio.google.com/apikey. لا تحطه داخل ملف ترفعه على GitHub.</p></details>
+  <div id="chat" class="chat" aria-live="polite"></div>
+  <div class="row chips">${EXAMPLES.map(e=>`<button type="button" data-ex="${esc(e)}">${esc(e)}</button>`).join('')}</div>
+  <form id="aiF" class="row"><input type="text" id="aiI" placeholder="مثال: حط رف ثاني على الجدار اليسار" autocomplete="off"><button type="submit" id="aiSend">إرسال</button></form>
+  <p class="note">كل اللي يسويه Gemini في طلب واحد ترجعه بضغطة تراجع وحدة.</p>`);aiOpen=true;renderChat();}
+function toGem(s){if(!s||typeof s!=='object')return s;const o={};
+  for(const k of['type','description','enum','properties','items','required']){if(s[k]===undefined)continue;
+    if(k==='type')o.type=String(s.type).toUpperCase();
+    else if(k==='properties'){o.properties={};for(const p in s.properties)o.properties[p]=toGem(s.properties[p]);}
+    else if(k==='items')o.items=toGem(s.items);else o[k]=s[k];}
+  return o;}
+const GEM_TOOLS=[{functionDeclarations:AI_TOOLS.map(t=>{const d={name:t.name,description:t.description};
+  if(t.inputSchema&&t.inputSchema.properties&&Object.keys(t.inputSchema.properties).length)d.parameters=toGem(t.inputSchema);return d;})}];
+async function gemCall(contents){
+  const key=LS('gemini-key'),model=(LS('gemini-model')||DEFAULT_MODEL).replace(/^models\//,'');
+  let res;
+  try{res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',
+    headers:{'Content-Type':'application/json','x-goog-api-key':key},
+    body:JSON.stringify({systemInstruction:{parts:[{text:aiPrompt()}]},contents,tools:GEM_TOOLS})});}
+  catch(e){throw new Error('ما قدرت أوصل لخوادم Google. إذا فاتح الصفحة داخل Claude فهي تمنع الاتصال، افتح نسخة الملف على موقعك أو من جهازك.');}
+  let j={};try{j=await res.json();}catch(e){}
+  if(!res.ok){const m=(j.error&&j.error.message)||res.statusText;
+    if(res.status===400&&/API key/i.test(m))throw new Error('مفتاح Gemini غير صحيح.');
+    if(res.status===404)throw new Error('الموديل "'+model+'" مو موجود. اضغط "جيب الموديلات" واختار واحد.');
+    if(res.status===429)throw new Error('وصلت حد الاستخدام في Gemini، جرّب بعد شوي.');
+    throw new Error('Gemini: '+m);}
+  return j;}
+async function askAI(text){
+  text=text.trim();if(!text||aiBusy)return;
+  if(!LS('gemini-key')){toast('أدخل مفتاح Gemini أول');const d=sheet.querySelector('details');if(d)d.open=true;return;}
+  aiBusy=true;const before=JSON.stringify(state);hist.push(before);undoBtn.disabled=false;
+  chat.push({role:'user',content:text},{role:'assistant',content:'يفكر…'});const last=chat[chat.length-1];renderChat();
+  if(gem.length>80)gem=[];
+  gem.push({role:'user',parts:[{text}]});
+  try{
+    for(let round=0;round<15;round++){
+      const r=await gemCall(gem);const cand=r.candidates&&r.candidates[0];
+      if(!cand||!cand.content||!cand.content.parts){throw new Error(r.promptFeedback&&r.promptFeedback.blockReason?'Gemini رفض الطلب ('+r.promptFeedback.blockReason+')':'Gemini ما رجّع رد.');}
+      gem.push(cand.content);
+      const calls=cand.content.parts.filter(p=>p.functionCall);
+      const said=cand.content.parts.filter(p=>p.text&&!p.thought).map(p=>p.text).join('').trim();
+      if(said)last.content=said;
+      if(!calls.length){if(!said)last.content='خلصت.';break;}
+      const parts=calls.map(p=>{const fc=p.functionCall,t=AI_TOOLS.find(x=>x.name===fc.name);let out;
+        try{out=t?t.execute(fc.args||{}):{error:'أداة غير معروفة'};}catch(e){out={error:e.message};}
+        const fr={name:fc.name,response:{result:out}};if(fc.id)fr.id=fc.id;return{functionResponse:fr};});
+      gem.push({role:'user',parts});
+      if(!said)last.content='يشتغل على التصميم…';renderChat();
+    }
+  }catch(e){last.content=e.message||'صار خطأ.';
+    while(gem.length&&gem[gem.length-1].role==='user'&&gem[gem.length-1].parts.some(p=>p.functionResponse))gem.pop();
+    if(gem.length&&gem[gem.length-1].role==='user')gem.pop();}
+  aiBusy=false;
+  if(JSON.stringify(state)===before){hist.pop();undoBtn.disabled=!hist.length;}else{save();showSel();}
+  renderChat();
+}
+sheet.addEventListener('submit',e=>{e.preventDefault();const i=$('#aiI');if(i){const v=i.value;i.value='';askAI(v);}});
+sheet.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.ex){askAI(b.dataset.ex);return;}
+  const a=b.dataset.a;
+  if(a==='gSave'){LS('gemini-key',$('#gKey').value.trim());LS('gemini-model',$('#gModel').value.trim()||DEFAULT_MODEL);gem=[];toast('انحفظت إعدادات Gemini');const d=sheet.querySelector('details');if(d)d.open=false;return;}
+  if(a==='gDel'){try{localStorage.removeItem('gemini-key');}catch(err){}$('#gKey').value='';toast('انحذف المفتاح');return;}
+  if(a==='gList'){const key=$('#gKey').value.trim();if(!key){toast('أدخل المفتاح أول');return;}
+    try{const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200',{headers:{'x-goog-api-key':key}});const j=await r.json();
+      if(!r.ok)throw new Error((j.error&&j.error.message)||'خطأ');
+      const names=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>m.name.replace(/^models\//,''));
+      $('#gModels').innerHTML=names.map(n=>`<option value="${esc(n)}">`).join('');toast('لقيت '+names.length+' موديل، اختار من القائمة');}
+    catch(err){toast(/fetch/i.test(String(err))?'الاتصال بـ Google محجوب هنا':'ما قدرت أجيب الموديلات');}}
+});
+$('#aiBtn').onclick=openAI;$('#aiBtn').hidden=false;$('#aiBtn').textContent='✨ Gemini';
+
+// ===== المزامنة مع السحابة (عشان Claude يقرأ ويعدّل التصميم من المحادثة) =====
+const syncEl=$('#sync');const setSync=t=>{syncEl.hidden=false;syncEl.textContent='☁︎ '+t;};
+let dbDoc=null,lastRev=null,pushT=null,writing=false,again=false;
+var pushRemote=function(){if(!dbDoc)return;clearTimeout(pushT);pushT=setTimeout(doPush,900);};
+async function doPush(){if(!dbDoc)return;if(writing){again=true;return;}writing=true;
+  const rev=Date.now().toString(36)+Math.random().toString(36).slice(2,6);lastRev=rev;
+  try{await dbDoc.set({state:JSON.parse(JSON.stringify(state)),rev,by:'page',updatedAt:new Date().toISOString()});setSync('محفوظ');}
+  catch(e){if(e&&e.code==='invalid_argument'){dbDoc=null;setSync('للعرض فقط');}else setSync('تعذّر الحفظ');}
+  writing=false;if(again){again=false;doPush();}}
+(async()=>{let db=null;try{db=await claude.use('db');}catch(e){}if(!db)return;
+  const ref=db.doc('design/current');setSync('جاري الاتصال…');
+  const timer=setTimeout(()=>setSync('السحابة ما ردّت'),10000);
+  ref.onSnapshot(s=>{
+    if(!s.metadata.fromCache)clearTimeout(timer);
+    if(!dbDoc&&!s.metadata.fromCache){dbDoc=ref;if(!s.exists){doPush();return;}}
+    if(!s.exists||s.metadata.hasPendingWrites)return;
+    const d=s.data();if(!d||d.rev===lastRev)return;
+    const st=d.state&&JSON.parse(JSON.stringify(d.state));if(!st||!st.room||!Array.isArray(st.items))return;
+    st.items=st.items.map(norm).filter(Boolean);st.nextId=Math.max(+st.nextId||0,...st.items.map(i=>i.id+1),1);
+    lastRev=d.rev;const firstLoad=!s.metadata.fromCache&&!hist.length;
+    if(JSON.stringify(st)!==JSON.stringify(state)){if(!firstLoad)snapshot();state=st;if(!getIt(selId))selId=null;rebuildAll();showSel();saveLocal();if(!firstLoad)toast(d.by==='claude'?'Claude عدّل التصميم':'انحدّث التصميم');}
+    setSync('متصل');
+  },()=>{clearTimeout(timer);setSync('السحابة غير متاحة');});
+})();
+
+// ===== التشغيل =====
+function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w<600?68:55;camera.updateProjectionMatrix();}
+const ro=new ResizeObserver(resize);ro.observe(canvas);resize();
+rebuildAll();showSel();
+if(document.fonts&&document.fonts.load)document.fonts.load('700 150px "Reem Kufi"').then(()=>state.items.filter(i=>i.type==='logo').forEach(buildItem)).catch(()=>{});
+let first=true;
+function loop(){
+  if(goal){const k=.1;cur.theta+=(goal.theta-cur.theta)*k;cur.phi+=(goal.phi-cur.phi)*k;cur.r+=(goal.r-cur.r)*k;cur.t.lerp(goal.t,k);
+    if(Math.abs(goal.r-cur.r)<.005&&Math.abs(goal.phi-cur.phi)<.002)goal=null;}
+  applyCam();renderer.render(scene,camera);
+  if(first){first=false;loadEl.classList.add('off');}
+  requestAnimationFrame(loop);
+}
+loop();
+}catch(err){loadEl.textContent='المتصفح ما يدعم العرض الثلاثي الأبعاد (WebGL).';console.error(err);}
+}
+</script>
+</body>
+</html>
