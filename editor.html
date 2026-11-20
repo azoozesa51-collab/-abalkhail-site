@@ -511,7 +511,9 @@ rot_deg: صفر يعني وجه القطعة يطالع الواجهة الزج�
 لا تخلي القطع تتداخل، واترك ممرات ٩٠ سم على الأقل. إذا الطلب غامض، اختار أنسب تفسير ونفّذه.
 بعد ما تخلص، رد بجملة أو جملتين بلهجة سعودية واضحة تقول وش سويت. إذا الطلب سؤال بس، جاوب بدون ما تعدّل.`;}
 const chat=[];let aiOpen=false,aiBusy=false,gem=[];
-const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k)||'';localStorage.setItem(k,v);}catch(e){return '';}};
+const MEM={};
+const LS=(k,v)=>{if(v===undefined){let r='';try{r=localStorage.getItem(k)||'';}catch(e){}return r||MEM[k]||'';}MEM[k]=v;try{localStorage.setItem(k,v);}catch(e){}return v;};
+const getKey=()=>{const i=document.getElementById('gKey');return(i&&i.value.trim())||LS('gemini-key');};
 const DEFAULT_MODEL='gemini-3.8-flash';
 const EXAMPLES=['امسح كل شي وصمم لي محل عود فخم من الصفر','حط كرسيين زيادة جنب طاولة البخور','خل الرفوف كلها خشب داكن','وش القطع اللي في المحل؟'];
 function renderChat(){if(!aiOpen)return;const el=$('#chat');if(!el)return;
@@ -522,7 +524,7 @@ function openAI(){const key=LS('gemini-key'),model=LS('gemini-model')||DEFAULT_M
   <details ${key?'':'open'}><summary style="cursor:pointer;min-height:32px">إعدادات Gemini ${key?'· المفتاح محفوظ':'· أدخل مفتاحك'}</summary>
     <div class="row" style="margin-top:8px"><span class="lbl">مفتاح API</span><input type="password" id="gKey" value="${esc(key)}" placeholder="AIza…" autocomplete="off" style="font:16px monospace;direction:ltr"></div>
     <div class="row"><span class="lbl">الموديل</span><input type="text" id="gModel" value="${esc(model)}" list="gModels" style="direction:ltr"><datalist id="gModels"></datalist><button type="button" data-a="gList">جيب الموديلات</button></div>
-    <div class="row"><button type="button" data-a="gSave">حفظ</button><button type="button" data-a="gDel">احذف المفتاح</button></div>
+    <div class="row"><button type="button" data-a="gSave">حفظ</button><button type="button" data-a="gTest">اختبر الاتصال</button><button type="button" data-a="gDel">احذف المفتاح</button></div>
     <p class="note">المفتاح ينحفظ في هذا المتصفح بس، ويروح مباشرة لخوادم Google. تطلعه من aistudio.google.com/apikey. لا تحطه داخل ملف ترفعه على GitHub.</p></details>
   <div id="chat" class="chat" aria-live="polite"></div>
   <div class="row chips">${EXAMPLES.map(e=>`<button type="button" data-ex="${esc(e)}">${esc(e)}</button>`).join('')}</div>
@@ -538,7 +540,7 @@ const GEM_TOOLS=[{functionDeclarations:AI_TOOLS.map(t=>{const d={name:t.name,des
   if(t.inputSchema&&t.inputSchema.properties&&Object.keys(t.inputSchema.properties).length)d.parameters=toGem(t.inputSchema);return d;})}];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function gemCall(contents,onWait){
-  const key=LS('gemini-key'),chosen=(LS('gemini-model')||DEFAULT_MODEL).replace(/^models\//,'');
+  const key=getKey(),chosen=(LS('gemini-model')||DEFAULT_MODEL).replace(/^models\//,'');
   const chain=[chosen,...['gemini-3.8-flash','gemini-3.5-flash','gemini-3.5-flash-lite'].filter(m=>m!==chosen)];
   let lastErr=null;
   for(let mi=0;mi<chain.length;mi++){const model=chain[mi];
@@ -563,7 +565,8 @@ async function gemCall(contents,onWait){
   throw lastErr||new Error('ما قدرت أوصل لـ Gemini.');}
 async function askAI(text){
   text=text.trim();if(!text||aiBusy)return;
-  if(!LS('gemini-key')){toast('أدخل مفتاح Gemini أول');const d=sheet.querySelector('details');if(d)d.open=true;return;}
+  const typed=getKey();if(!typed){toast('أدخل مفتاح Gemini أول');const d=sheet.querySelector('details');if(d)d.open=true;return;}
+  LS('gemini-key',typed);
   aiBusy=true;const before=JSON.stringify(state);hist.push(before);undoBtn.disabled=false;
   chat.push({role:'user',content:text},{role:'assistant',content:'يفكر…'});const last=chat[chat.length-1];renderChat();
   if(gem.length>80)gem=[];
@@ -595,7 +598,14 @@ sheet.addEventListener('click',async e=>{const b=e.target.closest('button');if(!
   if(b.dataset.ex){askAI(b.dataset.ex);return;}
   const a=b.dataset.a;
   if(a==='gSave'){LS('gemini-key',$('#gKey').value.trim());LS('gemini-model',$('#gModel').value.trim()||DEFAULT_MODEL);gem=[];toast('انحفظت إعدادات Gemini');const d=sheet.querySelector('details');if(d)d.open=false;return;}
-  if(a==='gDel'){try{localStorage.removeItem('gemini-key');}catch(err){}$('#gKey').value='';toast('انحذف المفتاح');return;}
+  if(a==='gTest'){const key=getKey();if(!key){toast('أدخل المفتاح أول');return;}
+    const model=($('#gModel').value.trim()||DEFAULT_MODEL).replace(/^models\//,'');
+    chat.push({role:'assistant',content:'أختبر الاتصال بـ '+model+'…'});const last=chat[chat.length-1];renderChat();
+    try{const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({contents:[{role:'user',parts:[{text:'رد بكلمة: تمام'}]}]})});
+      const j=await r.json().catch(()=>({}));last.content=r.ok?'✅ الاتصال شغال مع '+model:'❌ خطأ '+r.status+': '+((j.error&&j.error.message)||r.statusText);}
+    catch(err){last.content='❌ ما قدرت أوصل لخوادم Google. الشبكة أو الصفحة محجوبة.';}
+    renderChat();return;}
+  if(a==='gDel'){try{localStorage.removeItem('gemini-key');}catch(err){}delete MEM['gemini-key'];$('#gKey').value='';toast('انحذف المفتاح');return;}
   if(a==='gList'){const key=$('#gKey').value.trim();if(!key){toast('أدخل المفتاح أول');return;}
     try{const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200',{headers:{'x-goog-api-key':key}});const j=await r.json();
       if(!r.ok)throw new Error((j.error&&j.error.message)||'خطأ');
