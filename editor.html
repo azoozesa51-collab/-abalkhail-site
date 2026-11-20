@@ -532,20 +532,31 @@ function toGem(s){if(!s||typeof s!=='object')return s;const o={};
   return o;}
 const GEM_TOOLS=[{functionDeclarations:AI_TOOLS.map(t=>{const d={name:t.name,description:t.description};
   if(t.inputSchema&&t.inputSchema.properties&&Object.keys(t.inputSchema.properties).length)d.parameters=toGem(t.inputSchema);return d;})}];
-async function gemCall(contents){
-  const key=LS('gemini-key'),model=(LS('gemini-model')||DEFAULT_MODEL).replace(/^models\//,'');
-  let res;
-  try{res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',
-    headers:{'Content-Type':'application/json','x-goog-api-key':key},
-    body:JSON.stringify({systemInstruction:{parts:[{text:aiPrompt()}]},contents,tools:GEM_TOOLS})});}
-  catch(e){throw new Error('ما قدرت أوصل لخوادم Google. إذا فاتح الصفحة داخل Claude فهي تمنع الاتصال، افتح نسخة الملف على موقعك أو من جهازك.');}
-  let j={};try{j=await res.json();}catch(e){}
-  if(!res.ok){const m=(j.error&&j.error.message)||res.statusText;
-    if(res.status===400&&/API key/i.test(m))throw new Error('مفتاح Gemini غير صحيح.');
-    if(res.status===404)throw new Error('الموديل "'+model+'" مو موجود. اضغط "جيب الموديلات" واختار واحد.');
-    if(res.status===429)throw new Error('وصلت حد الاستخدام في Gemini، جرّب بعد شوي.');
-    throw new Error('Gemini: '+m);}
-  return j;}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function gemCall(contents,onWait){
+  const key=LS('gemini-key'),chosen=(LS('gemini-model')||DEFAULT_MODEL).replace(/^models\//,'');
+  const chain=[chosen,...['gemini-3.8-flash','gemini-3.5-flash','gemini-3.5-flash-lite'].filter(m=>m!==chosen)];
+  let lastErr=null;
+  for(let mi=0;mi<chain.length;mi++){const model=chain[mi];
+    for(let attempt=0;attempt<2;attempt++){
+      let res;
+      try{res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',
+        headers:{'Content-Type':'application/json','x-goog-api-key':key},
+        body:JSON.stringify({systemInstruction:{parts:[{text:aiPrompt()}]},contents,tools:GEM_TOOLS})});}
+      catch(e){throw new Error('ما قدرت أوصل لخوادم Google. إذا فاتح الصفحة داخل Claude فهي تمنع الاتصال، افتح نسخة الملف على موقعك أو من جهازك.');}
+      let j={};try{j=await res.json();}catch(e){}
+      if(res.ok)return j;
+      const m=(j.error&&j.error.message)||res.statusText;
+      if(res.status===400&&/API key/i.test(m))throw new Error('مفتاح Gemini غير صحيح.');
+      if(res.status===429)throw new Error('وصلت حد الاستخدام في Gemini، جرّب بعد شوي.');
+      if(res.status===404){lastErr=new Error('الموديل "'+model+'" مو موجود. اضغط "جيب الموديلات" واختار واحد.');break;}
+      if(res.status>=500){lastErr=new Error('خوادم Gemini مشغولة حالياً (ضغط عالي). جرّب بعد دقيقة.');
+        if(attempt===0){if(onWait)onWait('الموديل مشغول، أعيد المحاولة…');await sleep(2500);continue;}break;}
+      throw new Error('Gemini: '+m);
+    }
+    if(mi<chain.length-1&&onWait)onWait('أجرّب موديل ثاني ('+chain[mi+1]+')…');
+  }
+  throw lastErr||new Error('ما قدرت أوصل لـ Gemini.');}
 async function askAI(text){
   text=text.trim();if(!text||aiBusy)return;
   if(!LS('gemini-key')){toast('أدخل مفتاح Gemini أول');const d=sheet.querySelector('details');if(d)d.open=true;return;}
@@ -555,7 +566,7 @@ async function askAI(text){
   gem.push({role:'user',parts:[{text}]});
   try{
     for(let round=0;round<15;round++){
-      const r=await gemCall(gem);const cand=r.candidates&&r.candidates[0];
+      const r=await gemCall(gem,w=>{last.content=w;renderChat();});const cand=r.candidates&&r.candidates[0];
       if(!cand||!cand.content||!cand.content.parts){throw new Error(r.promptFeedback&&r.promptFeedback.blockReason?'Gemini رفض الطلب ('+r.promptFeedback.blockReason+')':'Gemini ما رجّع رد.');}
       gem.push(cand.content);
       const calls=cand.content.parts.filter(p=>p.functionCall);
